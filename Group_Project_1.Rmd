@@ -1,0 +1,95 @@
+---
+title: "Group_Project_1"
+output:
+  word_document: default
+  html_notebook: default
+---
+
+#Install all packages necessary:
+```{r}
+library(tidyverse)
+library(car)
+library(devtools)
+install_github("nxskok/smmr")
+library(smmr)
+```
+
+#Read in the data:
+```{r}
+url="http://www.utsc.utoronto.ca/~butler/c32/restaurant-tips.txt"
+#Since values are separated by tab characters, the suitable function to read the data file is read_tsv().
+tips=read_tsv(url)
+tips
+```
+
+#Assess relationship between Server vs. PctTip:
+```{r}
+ggplot(tips,aes(sample=PctTip,color=Server))+stat_qq()+stat_qq_line()+facet_wrap(~Server,scale="free",ncol=2)
+median_test(tips,PctTip,Server)
+
+ggplot(tips,aes(sample=Tip,color=Server))+stat_qq()+stat_qq_line()+facet_wrap(~Server,scale="free",ncol=2)
+median_test(tips,PctTip,Server)
+
+#t.server.aov=aov(PctTip~Server,data=tips)
+#summary(t.server.aov)
+```
+Conclusion: The median tip percentage are the same for all three servers.
+
+#Assess relationship between Day vs PctTip:
+```{r}
+ggplot(tips,aes(sample=PctTip,color=Day))+stat_qq()+stat_qq_line()+facet_wrap(~Day,scale="free",ncol=3)
+median_test(tips,PctTip,Day)
+#t.day.aov=aov(PctTip~Day,data=tips)
+#summary(t.day.aov)
+```
+
+#Assess relationship between Guests vs PctTip:
+```{r}
+ggplot(tips,aes(sample=PctTip,color=factor(Guests)))+stat_qq()+stat_qq_line()+facet_wrap(~factor(Guests),scale="free",ncol=3)
+median_test(tips,PctTip,factor(Guests))
+#t.day.aov=aov(PctTip~Day,data=tips)
+#summary(t.day.aov)
+```
+
+#Assess relationship between Credit vs. PctTip:
+```{r}
+ggplot(tips,aes(sample=PctTip,color=Credit))+stat_qq()+stat_qq_line()+facet_wrap(~Credit,scale="free",ncol=3)
+median_test(tips,PctTip,Credit)
+#t.credit.aov=aov(PctTip~Credit,data=tips)
+#summary(t.credit.aov)
+```
+Conclusion: The mean percentage tip differs between the two methods of payment. 
+
+#Assess relationship between Bill vs. PctTip:
+```{r}
+#Split `Bill` by quartile ranges.
+summary(tips$Bill)
+```
+Comment: We split values of `Bill` into four ranges 1,2,3,4:
+Range 1: values <= Q1=15.19.
+Range 2: Q1=15.19 < values <= Q2=20.22.
+Range 3: Q2=20.22 < values <= Q3=28.84.
+Range 4: Q3=28.84 < values.
+
+```{r}
+#Create new column to dataframe that identifies which range the Bill value belongs to.
+tips$r1 = (tips$Bill <= 15.19)*1
+tips$r2 = (tips$Bill > 15 & tips$Bill <= 20.22)*2
+tips$r3 = (tips$Bill > 20.22 & tips$Bill <= 28.84)*3
+tips$r4 = (tips$Bill > 28.84)*4
+tips$Range <- (tips$r1+tips$r2+tips$r3+tips$r4)
+#tips %>% filter(quantile == 1) %>% select(c(Bill))
+t.bill.range=subset(tips,select=-c(r1,r2,r3,r4))
+t.bill.range
+```
+
+```{r}
+#Compute median test for `Bill` vs. `PctTip`.
+ggplot(tips,aes(sample=PctTip,color=factor(Range)))+stat_qq()+stat_qq_line()+facet_wrap(~factor(Range),scale="free",ncol=3)
+median_test(t.bill.range,PctTip,factor(Range))
+#t.bill.aov=aov(PctTip~Bill,data=t.bill.range)
+#summary(t.bill.aov)
+```
+Conclusion: The mean percentage tip differs between ranges of bills.
+
+
