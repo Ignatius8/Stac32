@@ -1,0 +1,58 @@
+--- 
+title: "R Notebook"
+output: html_notebook
+---
+reading data in
+```{r}
+library(tidyverse)
+library(dplyr)
+mydata = read_tsv("http://www.utsc.utoronto.ca/~butler/c32/restaurant-tips.txt")
+mydata
+```
+```{r}
+#Convert data type of `Credit` into integer indicator variables.
+mydata[mydata=="y"] <- 1
+mydata[mydata=="n"] <- 0
+mydata$Credit=as.integer(mydata$Credit)
+#Reorganize the columns so that the first two columns are the categorical variables, following three columns are the quantitative independent variables, and the last two are the response variables.
+tips_sort <- mydata[c(6,5,4,3,1,2,7)]
+tips_sort
+#Create dataframe for model A.
+t.server=tips_sort[,-2]
+t.server$Server <- factor(t.server$Server,levels=c("A","B","C"))
+t.server <- t.server[order(t.server$Server),]
+t.server
+#Create dataframe for model B.
+t.day=tips_sort[,-1]
+t.day$Day <- factor(t.day$Day,levels=c("m","t","w","th","f"))
+t.day <- t.day[order(t.day$Day),]
+t.day
+```
+separating data by day and tips, and day and both tip and server
+```{r}
+ggplot(my_data,aes(x=Day,y=Tip))+geom_boxplot()
+ggplot(my_data,aes(x=Day,y=Tip, colour=Server))+geom_boxplot()
+```
+checking for relationship for bill and percenttip
+```{r}
+ggplot(my_data,aes(x=Bill,y=PctTip))+geom_point()+geom_smooth(method="lm")
+ggplot(my_data,aes(x=Tip,y=PctTip))+geom_point()+geom_smooth(method="lm")
+```
+
+```{r}
+ggplot(my_data,aes(x=factor(Guests),y=PctTip))+geom_boxplot()
+```
+
+new column for quantiles
+```{r}
+mydata$quantile1 = (mydata$Bill <= 15.19)*1
+mydata$quantile2 = (mydata$Bill > 15 & mydata$Bill <= 20.22)*2
+mydata$quantile3 = (mydata$Bill > 20.22 & mydata$Bill <= 28.84)*3
+mydata$quantile4 = (mydata$Bill > 28.84)*4
+mydata$quantile <- mydata$quantile1+mydata$quantile2+mydata$quantile3+mydata$quantile4
+#test = mydata %>% filter(quantile == 1) %>% select(c(Bill))
+tips_quant = subset(mydata, select = -c(quantile1, quantile2, quantile3, quantile4) )
+toString(tips_quant$quantile)
+tips_quant
+
+```
