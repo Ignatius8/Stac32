@@ -1,0 +1,103 @@
+---
+title: "STAC32-GROUP"
+output: html_notebook
+---
+
+We are interested to see factors that affects percentage being tip at a resturant.
+
+Below is the table of the dataset.
+
+```{r}
+library(tidyverse)
+src = "http://www.utsc.utoronto.ca/~butler/c32/restaurant-tips.txt"
+tip = read_tsv(src)
+tip
+```
+
+
+**Effects of differences in days**
+
+First, we will examine if the day itself has an effect on tip percentage. Below, is a quantile plot for Server A. It appears the distributions are normal for all of the days. It is worth mentioning that there are one outlier on friday and tuesday. Having said that, a analysis of variance will be appropriate here.
+
+Below are boxplots of percentage tip for each server for each day.
+
+```{r}
+ggplot(tip, aes(factor(x=Server), y=PctTip)) + geom_boxplot() + facet_wrap(.~Day, scale="free", ncol = 3)
+```
+
+Graphing the quantile plot, we notice that the graphs for friday and tuesday are not normal, so a median test will be more reliable here.
+
+```{r}
+# filter all rows with Server=A
+tip %>% filter(Server=="A") -> SA
+ggplot(SA, aes(sample=PctTip)) + stat_qq()+stat_qq_line()+facet_wrap(.~Day, scale="free", ncol=2)
+```
+
+```{r}
+library(smmr)
+median_test(SA, PctTip, Day)
+```
+
+Since the P-value for the analysis of variance = 0.2758 > 0.05. There is no evidence to suggest that there are any differences in means for each of the days. A pair-wise test here will not be worthwile. So we do not reject our H0: the are no differences in mean for each weekday for server A.
+
+Repeat the process for server B. Like Server A, the quantile plot for server B suggest that the distributions are not normal.
+
+```{r}
+tip %>% filter(Server=="B") -> SB
+ggplot(SB, aes(sample=PctTip)) + stat_qq()+stat_qq_line()+facet_wrap(~Day, scale="free", ncol=2)
+```
+
+```{r}
+median_test(SB, PctTip, Day)
+```
+
+Now we repeat for server C.
+
+```{r}
+tip %>% filter(Server=="C") -> SC
+ggplot(SC, aes(sample=PctTip)) + stat_qq()+stat_qq_line()+facet_wrap(~Day, scale="free", ncol=2)
+```
+
+```{r}
+median_test(SA, PctTip, Day)
+```
+
+P-valye = 0.2758 > 0.05, so there are no evidence to suggest that the differences in days have an effect on server C.
+
+For all 3 servers there were no evidence to suggest that days has an effect on tip percentage.
+
+**Effects of Bill amount**
+
+Next, we analyze the effects of the size of bill have on on tip percentage. We decided to split the bill amount into 3 groups based on quartile one and quartile three. Q1 are bill amount below Q1, Q2 are amounts between Q1 and Q3, Q3 are amounts equal to or beyondQ3.
+
+```{r}
+summary(tip$Bill)
+```
+
+
+```{r}
+tip %>% mutate(Quartile = ifelse(Bill <=15.19, "Q1", ifelse(Bill <20.22, "Q2", "Q3"))) -> tipbill
+```
+
+```{r}
+ggplot(tipbill, aes(x=Quartile, y=PctTip)) + geom_boxplot()
+```
+
+Below are the quantile plots for Q1, Q2 and Q3. It doesn't appear normal so we will do a median test here.
+
+```{r}
+ggplot(tipbill, aes(sample=Bill)) + stat_qq()+stat_qq_line()+facet_wrap(~Quartile, scale="free", ncol=2)
+```
+
+
+```{r}
+median_test(tipbill, PctTip, Quartile)
+```
+
+Since p-value = 0.02595 < 0.05, at 5% significance, there are evidence to suggest that the Bill amount affects the median percentage being tipped.
+
+```{r}
+pairwise_median_test(tipbill, PctTip, Quartile)
+```
+
+The results from he pair wise median test shows that the Q1-Q3 is significant.
