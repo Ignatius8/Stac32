@@ -68,7 +68,7 @@ For all 3 servers there were no evidence to suggest that days has an effect on t
 
 **Effects of Bill amount**
 
-Next, we analyze the effects of the size of bill have on on tip percentage. We decided to split the bill amount into 3 groups based on quartile one and quartile three. Q1 are bill amount below Q1, Q2 are amounts between Q1 and Q3, Q3 are amounts equal to or beyondQ3.
+Next, we analyze the effects of the size of bill have on on tip percentage. We decided to split the bill amount into 4 groups based on quartiles.
 
 ```{r}
 summary(tip$Bill)
@@ -76,14 +76,15 @@ summary(tip$Bill)
 
 
 ```{r}
-tip %>% mutate(Quartile = ifelse(Bill <=15.19, "Q1", ifelse(Bill <20.22, "Q2", "Q3"))) -> tipbill
+tip %>% mutate(Quartile = ifelse(Bill <=15.19, "Q1", ifelse(Bill <=20.22, "Q2", ifelse(Bill <=28.84, "Q3","Q4")))) -> tipbill
+tipbill
 ```
 
 ```{r}
 ggplot(tipbill, aes(x=Quartile, y=PctTip)) + geom_boxplot()
 ```
 
-Below are the quantile plots for Q1, Q2 and Q3. It doesn't appear normal so we will do a median test here.
+Below are the quantile plots for Q1, Q2, Q3 and Q4. It doesn't appear normal so we will do a median test here.
 
 ```{r}
 ggplot(tipbill, aes(sample=Bill)) + stat_qq()+stat_qq_line()+facet_wrap(~Quartile, scale="free", ncol=2)
@@ -100,4 +101,4 @@ Since p-value = 0.02595 < 0.05, at 5% significance, there are evidence to sugges
 pairwise_median_test(tipbill, PctTip, Quartile)
 ```
 
-The results from he pair wise median test shows that the Q1-Q3 is significant.
+The results from he pair wise median test shows that the Q1-Q3 and Q1-Q4 is significant.
