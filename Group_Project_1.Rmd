@@ -3,7 +3,10 @@ title: "Group_Project_1"
 output:
   word_document: default
   html_notebook: default
+  pdf_document: default
 ---
+
+##TITLE PAGE
 
 #Install all packages necessary:
 ```{r}
@@ -14,6 +17,9 @@ install_github("nxskok/smmr")
 library(smmr)
 ```
 
+##Introduction:
+Refer to report example Ken has in Assignment 6. Ctrl+F, "Introduction".
+
 #Read in the data:
 ```{r}
 url="http://www.utsc.utoronto.ca/~butler/c32/restaurant-tips.txt"
@@ -22,43 +28,74 @@ tips=read_tsv(url)
 tips
 ```
 
-#Assess relationship between Server vs. PctTip:
+#Assess relationship between Server vs. PctTip, Server vs. Tip:
 ```{r}
 ggplot(tips,aes(sample=PctTip,color=Server))+stat_qq()+stat_qq_line()+facet_wrap(~Server,scale="free",ncol=2)
 median_test(tips,PctTip,Server)
 
 ggplot(tips,aes(sample=Tip,color=Server))+stat_qq()+stat_qq_line()+facet_wrap(~Server,scale="free",ncol=2)
-median_test(tips,PctTip,Server)
+median_test(tips,Tip,Server)
 
 #t.server.aov=aov(PctTip~Server,data=tips)
 #summary(t.server.aov)
 ```
-Conclusion: The median tip percentage are the same for all three servers.
+Conclusion: The average (median) tip amount and tip percentage are the same for all three servers.
 
-#Assess relationship between Day vs PctTip:
+#Assess relationship between Day vs. PctTip, Day vs. Tip:
 ```{r}
 ggplot(tips,aes(sample=PctTip,color=Day))+stat_qq()+stat_qq_line()+facet_wrap(~Day,scale="free",ncol=3)
 median_test(tips,PctTip,Day)
+
+ggplot(tips,aes(sample=Tip,color=Day))+stat_qq()+stat_qq_line()+facet_wrap(~Day,scale="free",ncol=3)
+median_test(tips,Tip,Day)
+
 #t.day.aov=aov(PctTip~Day,data=tips)
 #summary(t.day.aov)
 ```
+Conclusion: The average (median) tip amount and tip percentage are the same for all days of the week. 
 
-#Assess relationship between Guests vs PctTip:
+#Assess relationship between Guests vs. PctTip, Guests vs. Tip:
 ```{r}
 ggplot(tips,aes(sample=PctTip,color=factor(Guests)))+stat_qq()+stat_qq_line()+facet_wrap(~factor(Guests),scale="free",ncol=3)
 median_test(tips,PctTip,factor(Guests))
+
+ggplot(tips,aes(sample=Tip,color=factor(Guests)))+stat_qq()+stat_qq_line()+facet_wrap(~factor(Guests),scale="free",ncol=3)
+median_test(tips,Tip,factor(Guests))
+
 #t.day.aov=aov(PctTip~Day,data=tips)
 #summary(t.day.aov)
 ```
+Conclusion: The average (median) tip amount differs between the number of guests, while the average (median) tip percentage are the same for all number of guests.
 
-#Assess relationship between Credit vs. PctTip:
+```{r}
+pairwise_median_test(tips,Tip,Guests)
+```
+Conclusion: The two pairs of Guests that are significant are 1 vs. 2 and 1 vs. 3.
+
+#Investigate why Guests is significant for Tip, but not for PctTip:
+```{r}
+tips %>% group_by(factor(Guests)) %>% summarize(mean_tip=mean(Tip),mean_bill=mean(Bill),mean_pcttip=mean(PctTip))
+```
+Comment: The average tip amount based on the number of guests ranges from $2.45 to $10, which is 5 times the difference. The average tip percentage ranges from 16.12% to 17.5%, which is only a 1-point difference. Thus, only the average (median) tip amount differs between the number of guests. 
+
+#Assess relationship between Credit vs. PctTip, Credit vs. Tip:
 ```{r}
 ggplot(tips,aes(sample=PctTip,color=Credit))+stat_qq()+stat_qq_line()+facet_wrap(~Credit,scale="free",ncol=3)
 median_test(tips,PctTip,Credit)
+
+ggplot(tips,aes(sample=Tip,color=Credit))+stat_qq()+stat_qq_line()+facet_wrap(~Credit,scale="free",ncol=3)
+median_test(tips,Tip,Credit)
+
 #t.credit.aov=aov(PctTip~Credit,data=tips)
 #summary(t.credit.aov)
 ```
-Conclusion: The mean percentage tip differs between the two methods of payment. 
+Conclusion: The average (median) tip amount and tip percentage differs between the two methods of payment. 
+
+```{r}
+pairwise_median_test(tips,PctTip,Credit)
+pairwise_median_test(tips,Tip,Credit)
+```
+Conclusion: The pair of payment methods are significant, with Tip having a much smaller p-value #Explain why (1 sentence). This is consistent for the following tests. 
 
 #Assess relationship between Bill vs. PctTip:
 ```{r}
@@ -73,23 +110,28 @@ Range 4: Q3=28.84 < values.
 
 ```{r}
 #Create new column to dataframe that identifies which range the Bill value belongs to.
-tips$r1 = (tips$Bill <= 15.19)*1
-tips$r2 = (tips$Bill > 15 & tips$Bill <= 20.22)*2
-tips$r3 = (tips$Bill > 20.22 & tips$Bill <= 28.84)*3
-tips$r4 = (tips$Bill > 28.84)*4
-tips$Range <- (tips$r1+tips$r2+tips$r3+tips$r4)
-#tips %>% filter(quantile == 1) %>% select(c(Bill))
-t.bill.range=subset(tips,select=-c(r1,r2,r3,r4))
-t.bill.range
+tips %>% mutate(Range = ifelse(Bill <=15.19, "1", ifelse(Bill <=20.22, "2", ifelse(Bill <=28.84, "3","4")))) -> bill_range
+bill_range
 ```
 
 ```{r}
 #Compute median test for `Bill` vs. `PctTip`.
-ggplot(tips,aes(sample=PctTip,color=factor(Range)))+stat_qq()+stat_qq_line()+facet_wrap(~factor(Range),scale="free",ncol=3)
-median_test(t.bill.range,PctTip,factor(Range))
-#t.bill.aov=aov(PctTip~Bill,data=t.bill.range)
+ggplot(bill_range,aes(sample=PctTip,color=factor(Range)))+stat_qq()+stat_qq_line()+facet_wrap(~factor(Range),scale="free",ncol=3)
+median_test(bill_range,PctTip,factor(Range))
+
+ggplot(bill_range,aes(sample=Tip,color=factor(Range)))+stat_qq()+stat_qq_line()+facet_wrap(~factor(Range),scale="free",ncol=3)
+median_test(bill_range,Tip,factor(Range))
+
+#t.bill.aov=aov(PctTip~Bill,data=bill_range)
 #summary(t.bill.aov)
 ```
-Conclusion: The mean percentage tip differs between ranges of bills.
+Comment: Since the average (median) tip amount and tip percentage differs between the bill ranges, we investigate which range is different from which.
 
+```{r}
+pairwise_median_test(bill_range,PctTip,Range)
+pairwise_median_test(bill_range,Tip,Range)
+```
+Conclusion: All pairs of bill ranges are significant.
 
+##Conclusion:
+Significant variables: Guests vs Tip (only pairs 1-2, 1-3), Credit vs PctTip, Credit vs Tip, Bill range vs PctTip, Bill range vs Tip. 
